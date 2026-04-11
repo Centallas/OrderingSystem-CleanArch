@@ -1,0 +1,17 @@
+# .NET Build artifacts
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / VS Code files
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+
+# Environment secrets (Important!)
+appsettings.Development.json
+
+# OS files
+.DS_Store
+Thumbs.db
