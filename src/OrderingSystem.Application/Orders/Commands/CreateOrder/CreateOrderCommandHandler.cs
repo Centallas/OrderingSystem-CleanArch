@@ -1,22 +1,23 @@
 using MediatR;
+using OrderingSystem.Application.Abstractions.Data;
 using OrderingSystem.Domain.Entities;
-using OrderingSystem.Domain.Repositories;
 
 namespace OrderingSystem.Application.Orders.Commands.CreateOrder;
 
-public class CreateOrderCommandHandler(IOrderRepository orderRepository) : IRequestHandler<CreateOrderCommand, Guid>
+public class CreateOrderCommandHandler(IApplicationDbContext context) 
+    : IRequestHandler<CreateOrderCommand, Guid>
 {
-    public async Task<Guid> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
-    {
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            CustomerName = command.CustomerName,
-            OrderDate = DateTime.UtcNow,
-            TotalAmount = command.TotalAmount
-        };
+    private readonly IApplicationDbContext _context = context;
 
-        await orderRepository.AddAsync(order);
+    public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
+    {
+        var order = new Order(request.CustomerName);
+
+        // Adding a placeholder item so the TotalAmount isn't zero
+        order.AddItem("Standard Order Item", request.TotalAmount, 1);
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync(cancellationToken);
 
         return order.Id;
     }
