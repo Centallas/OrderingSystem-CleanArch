@@ -17,7 +17,7 @@ public class OrdersController(ISender mediator) : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetOrders()
+    public async Task<IActionResult> GetOrders(CancellationToken cancellationToken)
     {
         // Instead of a service, we send a Query to MediatR
         var query = new GetOrdersQuery();

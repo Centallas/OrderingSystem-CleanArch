@@ -4,8 +4,8 @@ using OrderingSystem.Domain.Entities;
 
 namespace OrderingSystem.Infrastructure.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) 
-    : DbContext(options), IApplicationDbContext 
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : DbContext(options), IApplicationDbContext
 {
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; } // New DbSet
@@ -23,12 +23,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Order>(entity =>
         {
             entity.HasKey(o => o.Id);
-            
-            // Map the private backing field for the Items collection
+
+            // 1. First, define the relationship
             entity.HasMany(o => o.Items)
                   .WithOne()
-                  .HasForeignKey("OrderId") // Shadow property in OrderItem
+                  .HasForeignKey("OrderId")
                   .OnDelete(DeleteBehavior.Cascade);
+
+            // 2. Then, tell EF to use the private field for that existing navigation
+            var navigation = entity.Metadata.FindNavigation(nameof(Order.Items));
+            navigation?.SetPropertyAccessMode(PropertyAccessMode.Field);
+            navigation?.SetField("_items");
         });
 
         modelBuilder.Entity<OrderItem>(entity =>

@@ -16,7 +16,7 @@ public class OrderRepository(ApplicationDbContext context) : IOrderRepository
         return await context.Orders.ToListAsync();
     }
 
-    public async Task AddAsync(Order order)
+    public async Task AddAsync(Order order, CancellationToken cancellationToken)
     {
         await context.Orders.AddAsync(order);
         await context.SaveChangesAsync();

@@ -4,6 +4,7 @@ using OrderingSystem.Domain.Repositories;
 using OrderingSystem.Infrastructure.Persistence;
 using OrderingSystem.Infrastructure.Persistence.Repositories;
 using OrderingSystem.Application.Abstractions.Data;
+using OrderingSystem.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,10 +24,18 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // Register MediatR
-builder.Services.AddMediatR(cfg => 
-    cfg.RegisterServicesFromAssembly(typeof(CreateOrderCommand).Assembly));
+//builder.Services.AddMediatR(cfg => 
+  //  cfg.RegisterServicesFromAssembly(typeof(CreateOrderCommand).Assembly));
+builder.Services.AddApplication();
+// Add the Global Exception Handler
+builder.Services.AddExceptionHandler<OrderingSystem.Infrastructure.Exceptions.CustomExceptionHandler>();
+// This is required to generate the standardized ProblemDetails response
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+// Use the exception handling middleware
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
