@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit" Version="8.3.0" />
+    <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.0" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
@@ -18,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OrderingSystem.Infrastructure\OrderingSystem.Infrastructure.csproj" />
     <ProjectReference Include="..\OrderingSystem.Application\OrderingSystem.Application.csproj" />
+    <ProjectReference Include="..\OrderingSystem.Domain\OrderingSystem.Domain.csproj" />
   </ItemGroup>
 
 </Project>

@@ -15,3 +15,15 @@ appsettings.Development.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Terraform - Ignores lock files and state everywhere
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# .NET Build & Artifacts - Ignores publish, bin, obj, and zips everywhere
+**/publish/
+**/bin/
+**/obj/
+src/OrderingSystem.Api/deploy.zip
