@@ -34,20 +34,26 @@ builder.Services.AddMassTransit(x =>
 {
     // 1. Tell MassTransit to look for consumers in this assembly
     x.AddConsumer<OrderCreatedConsumer>();
-   
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitConfig = builder.Configuration.GetSection("MessageBroker");
-        
-        var host = rabbitConfig["Host"] ?? throw new ArgumentNullException("MessageBroker:Host is missing");
-        var user = rabbitConfig["Username"] ?? throw new ArgumentNullException("MessageBroker:Username is missing");
-        var pass = rabbitConfig["Password"] ?? throw new ArgumentNullException("MessageBroker:Password is missing");
+        var host = rabbitConfig["Host"];
+        var user = rabbitConfig["Username"];
+        var pass = rabbitConfig["Password"];
 
-        cfg.Host(host, "/", h => {
+        // This will print the length and the password in the logs so we can see if there is extra whitespace
+        Console.WriteLine($"DEBUG: Attempting connection...");
+        Console.WriteLine($"DEBUG: Host: '{host}'");
+        Console.WriteLine($"DEBUG: User: '{user}'");
+        Console.WriteLine($"DEBUG: Pass length: {pass?.Length}");
+        Console.WriteLine($"DEBUG: Pass content: '{pass}'"); // This will show spaces if they exist
+
+        cfg.Host(host, "/", h =>
+        {
             h.Username(user);
             h.Password(pass);
         });
-
         // 2. This is crucial: it creates the receiving endpoint automatically
         cfg.ConfigureEndpoints(context);
         /*cfg.ReceiveEndpoint("order-processing-queue", e =>

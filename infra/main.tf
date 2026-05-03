@@ -109,3 +109,15 @@ resource "azurerm_servicebus_queue" "order_queue" {
 output "redis_hostname" {
   value = azurerm_redis_cache.redis.hostname
 }
+# 11. Create the Azure Container Registry (ACR)
+resource "azurerm_container_registry" "acr" {
+  name                = "acrorderingsystemedwarddev" # Globally unique (no dashes)
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Basic"
+  admin_enabled       = true
+}
+
+output "acr_login_server" {
+  value = azurerm_container_registry.acr.login_server
+}

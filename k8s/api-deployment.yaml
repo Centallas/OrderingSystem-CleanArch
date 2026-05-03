@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordering-api
+  labels:
+    app: ordering-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ordering-api
+  template:
+    metadata:
+      labels:
+        app: ordering-api
+    spec:
+      containers:
+      - name: ordering-api
+        image: ordering-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"  
+        - name: ConnectionStrings__DefaultConnection
+          value: "Host=postgres;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123"
+        - name: MessageBroker__Host
+          value: "rabbitmq"
+        - name: MessageBroker__Username
+          value: "apiuser"
+        - name: MessageBroker__Password
+          value: "Ordering2026"
+        - name: Redis__Host
+          value: "redis"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordering-api
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: ordering-api
