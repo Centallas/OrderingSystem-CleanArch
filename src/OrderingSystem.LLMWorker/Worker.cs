@@ -18,13 +18,16 @@ public class Worker : BackgroundService
     private readonly Kernel _kernel;
     private readonly IServiceScopeFactory _scopeFactory; // 1. Added this field
     private IConnection? _connection;
-    private IChannel? _channel;
+    private IChannel? _channel
+    ;
+    private IConfiguration _configuration;
 
-    public Worker(ILogger<Worker> logger, Kernel kernel, IServiceScopeFactory scopeFactory)
+    public Worker(ILogger<Worker> logger, Kernel kernel, IServiceScopeFactory scopeFactory, IConfiguration configuration)
     {
         _logger = logger;
         _kernel = kernel;
         _scopeFactory = scopeFactory;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,7 +35,12 @@ public class Worker : BackgroundService
         _logger.LogInformation("LLM Worker starting...");
 
         // 1. Initialize Connection Asynchronously
-        var factory = new ConnectionFactory() { HostName = "localhost" };
+        // In your Worker constructor, inject IConfiguration
+        // Then in ExecuteAsync:
+        var factory = new ConnectionFactory
+        {
+            HostName = _configuration["RabbitMQ:Host"] ?? "localhost"
+        };
         _connection = await factory.CreateConnectionAsync(stoppingToken);
 
         // 2. Initialize Channel Asynchronously
