@@ -8,7 +8,7 @@ public class Order
     public string CustomerName { get; private set; } = string.Empty;
     public DateTime OrderDate { get; private set; }
     public OrderStatus Status { get; private set; }
-    
+
     // This is the collection EF will map to
     private readonly List<OrderItem> _items = new();
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
@@ -29,5 +29,12 @@ public class Order
     public void AddItem(string productName, decimal price, int quantity)
     {
         _items.Add(new OrderItem(productName, price, quantity));
+    }
+    // Inside Order.cs
+    public string? AISummary { get; private set; }
+
+    public void SetAISummary(string summary)
+    {
+        AISummary = summary;
     }
 }

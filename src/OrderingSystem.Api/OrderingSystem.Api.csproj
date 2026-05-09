@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>e9bb5e88-f062-4382-80f7-d202edfda30a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +23,7 @@
     <ProjectReference Include="..\OrderingSystem.Infrastructure\OrderingSystem.Infrastructure.csproj" />
     <ProjectReference Include="..\OrderingSystem.Application\OrderingSystem.Application.csproj" />
     <ProjectReference Include="..\OrderingSystem.Domain\OrderingSystem.Domain.csproj" />
+    <ProjectReference Include="..\OrderingSystem.Shared\OrderingSystem.Shared.csproj" />
   </ItemGroup>
 
 </Project>

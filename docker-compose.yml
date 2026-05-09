@@ -39,11 +39,27 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
       - Ollama__Endpoint=http://host.docker.internal:11434/v1/
-      - RabbitMQ__Host=rabbitmq  # Add this line
+      - "RabbitMQ:Host=rabbitmq"  # Use the colon syntax or RabbitMQ__Host
     depends_on:
       - postgres-db
       - rabbitmq
     networks:
       - default 
+  # 5. Api
+  ordering-api:
+    container_name: ordering-api
+    build:
+      context: .
+      dockerfile: API.Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Username=guest
+      - MessageBroker__Password=guest
+    depends_on:
+      - postgres-db
+      - rabbitmq
 volumes:
   postgres_data:
