@@ -1,27 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ordering-api
+  name: ordering-worker
   labels:
-    app: ordering-api
+    app: ordering-worker
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ordering-api
+      app: ordering-worker
   template:
     metadata:
       labels:
-        app: ordering-api
+        app: ordering-worker
     spec:
       containers:
-      - name: ordering-api
-        image: ordering-api:latest
+      - name: ordering-worker
+        image: ordering-worker:latest
         imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
         env:
-        - name: ASPNETCORE_ENVIRONMENT
+        - name: DOTNET_ENVIRONMENT
           value: "Development"
         - name: ConnectionStrings__DefaultConnection
           valueFrom:
@@ -37,17 +35,10 @@ spec:
             secretKeyRef:
               name: ordering-system-secrets
               key: rabbitmq-password
-        - name: Redis__Host
-          value: "redis"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ordering-api
-spec:
-  type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 8080
-  selector:
-    app: ordering-api
+        - name: Ollama__BaseUrl
+          value: "http://host.docker.internal:11434" # Routes to Ollama running on your local machine
+        - name: OpenAI__ApiKey
+          valueFrom:
+            secretKeyRef:
+              name: ordering-system-secrets
+              key: openai-key
