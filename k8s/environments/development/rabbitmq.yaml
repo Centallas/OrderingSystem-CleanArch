@@ -20,6 +20,14 @@ spec:
         ports:
         - containerPort: 5672 # RabbitMQ Message Port
         - containerPort: 15672 # Management UI Port
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "apiuser"
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: ordering-system-secrets
+              key: rabbitmq-password
 ---
 apiVersion: v1
 kind: Service

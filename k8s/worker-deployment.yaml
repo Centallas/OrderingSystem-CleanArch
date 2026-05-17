@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordering-worker
+  labels:
+    app: ordering-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ordering-worker
+  template:
+    metadata:
+      labels:
+        app: ordering-worker
+    spec:
+      containers:
+      - name: ordering-worker
+        image: ordering-worker:latest
+        imagePullPolicy: Never
+        env:
+        - name: DOTNET_ENVIRONMENT
+          value: "Development"
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: ordering-system-secrets
+              key: postgres-connection
+        - name: MessageBroker__Host
+          value: "rabbitmq"
+        - name: MessageBroker__Username
+          value: "apiuser"
+        - name: MessageBroker__Password
+          valueFrom:
+            secretKeyRef:
+              name: ordering-system-secrets
+              key: rabbitmq-password
+        - name: Ollama__BaseUrl
+          value: "http://host.docker.internal:11434" # Routes to Ollama running on your local machine
+        - name: OpenAI__ApiKey
+          valueFrom:
+            secretKeyRef:
+              name: ordering-system-secrets
+              key: openai-key
