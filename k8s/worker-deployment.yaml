@@ -35,8 +35,8 @@ spec:
             secretKeyRef:
               name: ordering-system-secrets
               key: rabbitmq-password
-        - name: Ollama__BaseUrl
-          value: "http://host.docker.internal:11434" # Routes to Ollama running on your local machine
+        - name: Ollama__Endpoint
+          value: "http://ollama-wsl-bridge:11434/v1/" # Routes to Ollama running on your local machine
         - name: OpenAI__ApiKey
           valueFrom:
             secretKeyRef:
