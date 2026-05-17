@@ -1,7 +1,10 @@
-**/.bin/
-**/.obj/
-**/.git/
-**/.vs/
-**/.vscode/
-out/
-dist/
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/out
+**/dist
+*.user
+*.lock
+.DS_Store

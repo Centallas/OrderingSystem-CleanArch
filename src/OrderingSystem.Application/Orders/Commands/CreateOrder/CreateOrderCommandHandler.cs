@@ -1,40 +1,50 @@
 using MassTransit;
+using OrderingSystem.Shared; 
 using MediatR;
-using OrderingSystem.Domain.Entities;
-using OrderingSystem.Domain.Repositories;
-using OrderingSystem.Domain.Events;
+using OrderingSystem.Application.Abstractions.Data; 
+using OrderingSystem.Domain.Entities; 
 
 namespace OrderingSystem.Application.Orders.Commands.CreateOrder;
 
-// Updated to use IPublishEndpoint for a more decoupled Event-Driven approach
-public class CreateOrderCommandHandler(IOrderRepository orderRepository, IPublishEndpoint publishEndpoint) 
-    : IRequestHandler<CreateOrderCommand, Guid>
+public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
 {
-    private readonly IOrderRepository _orderRepository = orderRepository;
-    private readonly IPublishEndpoint _publishEndpoint = publishEndpoint;
+    private readonly IApplicationDbContext _context;
+    private readonly IPublishEndpoint _publishEndpoint;
+
+
+    public CreateOrderCommandHandler(IApplicationDbContext context, IPublishEndpoint publishEndpoint)
+    {
+        _context = context;
+        _publishEndpoint = publishEndpoint;
+    }
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // 1. Create the Domain Entity
-        var order = new Order(request.CustomerName);
+        // 1. Create the Order using your constructor
+        var order = new Order(request.CustomerName); 
 
-        // 2. Add the items
-        order.AddItem("Standard Order Item", request.TotalAmount, 1);
+        // 2. Add items using your Domain method
+        // CRITICAL: Ensure your 'CreateOrderCommand' has a property named 'Items' 
+        // If it is named 'OrderItems' or something else, change 'request.Items' below.
+        foreach (var item in request.Items) 
+        {
+            order.AddItem(item.Product, item.Price, item.Quantity);
+        }
 
-        // 3. Persist via Repository
-        await _orderRepository.AddAsync(order, cancellationToken);
+        // 3. Persist to the database
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        // 4. PUBLISH EVENT: Broadcasts to any subscriber (Standard/Premium Tier behavior)
-        // MassTransit handles the exchange creation and routing automatically
-        await _publishEndpoint.Publish(new OrderCreatedEvent
+        // 4. Publish the message via MassTransit
+        // We use the 'order' object values because the Domain generates the ID and Date
+        await _publishEndpoint.Publish(new OrderCreated
         {
             OrderId = order.Id,
             CustomerName = order.CustomerName,
-            TotalAmount = order.TotalAmount,
-            CreatedAt = DateTime.UtcNow
+            // Mapping the items to our Shared Record
+            Items = order.Items.Select(i => new OrderItemDto(i.ProductName, i.Quantity)).ToList()
         }, cancellationToken);
 
-        // 5. Return the new Order ID
         return order.Id;
     }
 }

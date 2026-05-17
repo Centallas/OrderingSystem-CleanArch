@@ -29,39 +29,25 @@ builder.Services.AddApplication();
 builder.Services.AddExceptionHandler<OrderingSystem.Infrastructure.Exceptions.CustomExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// --- MassTransit Configuration (Fixed for Basic Tier) ---
+// In the API, we only need to tell MassTransit where RabbitMQ is.
 builder.Services.AddMassTransit(x =>
 {
-    // 1. Tell MassTransit to look for consumers in this assembly
-    x.AddConsumer<OrderCreatedConsumer>();
-
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitConfig = builder.Configuration.GetSection("MessageBroker");
-        var host = rabbitConfig["Host"];
-        var user = rabbitConfig["Username"];
-        var pass = rabbitConfig["Password"];
-
-        // This will print the length and the password in the logs so we can see if there is extra whitespace
-        Console.WriteLine($"DEBUG: Attempting connection...");
-        Console.WriteLine($"DEBUG: Host: '{host}'");
-        Console.WriteLine($"DEBUG: User: '{user}'");
-        Console.WriteLine($"DEBUG: Pass length: {pass?.Length}");
-        Console.WriteLine($"DEBUG: Pass content: '{pass}'"); // This will show spaces if they exist
-
-        cfg.Host(host, "/", h =>
+        cfg.Host(rabbitConfig["Host"], "/", h =>
         {
-            h.Username(user);
-            h.Password(pass);
+            h.Username(rabbitConfig["Username"]);
+            h.Password(rabbitConfig["Password"]);
         });
-        // 2. This is crucial: it creates the receiving endpoint automatically
-        cfg.ConfigureEndpoints(context);
-        /*cfg.ReceiveEndpoint("order-processing-queue", e =>
-        {
-            e.ConfigureConsumer<OrderCreatedConsumer>(context);
-        });*/
     });
 });
+// This ensures the bus starts and stops with the web application
+builder.Services.AddOptions<MassTransitHostOptions>()
+    .Configure(options =>
+    {
+        options.WaitUntilStarted = true;
+    });
 // Add Redis Caching
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -74,11 +60,13 @@ var app = builder.Build();
 // --- Middleware Pipeline ---
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
+// Enable Swagger for all environments (including Production in Docker)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    options.RoutePrefix = string.Empty; // This makes Swagger the home page (http://localhost:5000/)
+});
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
