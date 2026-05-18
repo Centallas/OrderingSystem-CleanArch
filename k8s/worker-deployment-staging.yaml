@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordering-llm-worker
+  namespace: staging
+  labels:
+    app: ordering-llm-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ordering-llm-worker
+  template:
+    metadata:
+      labels:
+        app: ordering-llm-worker
+    spec:
+      containers:
+      - name: llm-worker
+        image: centallas/ordering-llm-worker:staging  # Note the staging tag!
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: llm-worker-config
+        - secretRef:
+            name: llm-worker-secret

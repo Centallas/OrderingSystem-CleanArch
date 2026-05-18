@@ -1,0 +1,49 @@
+name: Build, Test, and Deploy to Staging
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ feature/* ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Download the repository code onto the runner    
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step 2: Set up the official .NET SDK environment    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    # Step 3: Restore NuGet dependencies
+    - name: Restore Dependencies
+      run: dotnet restore
+
+    # Step 4: Compile the entire solution to catch build errors
+    - name: Build Solution
+      run: dotnet build --configuration Release --no-restore
+
+    # Step 5: Run all automated tests in the solution
+    - name: Run Tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+    # Step 6: Log into Docker Hub using repository secrets
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    # Step 7: Build the container image and push it to Docker Hub
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Worker.Dockerfile # Pointing directly to your root worker file
+        push: true
+        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/ordering-llm-worker:staging
