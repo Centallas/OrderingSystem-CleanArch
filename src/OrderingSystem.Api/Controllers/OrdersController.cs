@@ -13,6 +13,8 @@ public class OrdersController(ISender mediator) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderCommand command)
     {
+        // Add this to verify the API receives the call
+        Console.WriteLine($">>> API: Received CreateOrderCommand for {command.CustomerName}");
         var result = await mediator.Send(command);
         return Ok(result);
     }

@@ -4,7 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-OrderingSystem.LLMWorker-588ecaee-f566-4dda-9475-52c14eee94a8</UserSecretsId>
+    <NoWarn>$(NoWarn);SKEXP0010</NoWarn>
+    <UserSecretsId>dotnet-OrderingSystem.LLMWorker-588ecaee-f566-4dda-9475-52c14eee94a8</UserSecretsId>   
   </PropertyGroup>
 
   <ItemGroup>

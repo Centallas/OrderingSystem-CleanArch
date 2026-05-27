@@ -8,6 +8,8 @@ using OrderingSystem.Infrastructure.Persistence.Repositories;
 using OrderingSystem.Application.Abstractions.Data;
 using OrderingSystem.Application;
 using OrderingSystem.Infrastructure.Messaging;
+using OrderingSystem.API.Consumers;
+using OrderingSystem.Shared; // Added to access the OrderAnalysisCompleted interface
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +31,12 @@ builder.Services.AddApplication();
 builder.Services.AddExceptionHandler<OrderingSystem.Infrastructure.Exceptions.CustomExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// In the API, we only need to tell MassTransit where RabbitMQ is.
+// --- MassTransit Setup ---
 builder.Services.AddMassTransit(x =>
 {
+    // Register the consumer
+    x.AddConsumer<OrderAnalysisCompletedConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitConfig = builder.Configuration.GetSection("MessageBroker");
@@ -40,14 +45,29 @@ builder.Services.AddMassTransit(x =>
             h.Username(rabbitConfig["Username"]);
             h.Password(rabbitConfig["Password"]);
         });
+
+        // 1. Explicitly map the outbound/inbound exchange contract topology name
+        cfg.Message<OrderAnalysisCompleted>(m => m.SetEntityName("order-analysis-completed"));
+
+        // 2. Configure a dedicated receive endpoint queue to break the name collision
+        cfg.ReceiveEndpoint("order-analysis-completed-queue", e =>
+        {
+            // Bind this consumer directly to this queue
+            e.ConfigureConsumer<OrderAnalysisCompletedConsumer>(context);
+        });
+
+        // Configure remaining endpoints automatically if any exist
+        cfg.ConfigureEndpoints(context);
     });
 });
+
 // This ensures the bus starts and stops with the web application
 builder.Services.AddOptions<MassTransitHostOptions>()
     .Configure(options =>
     {
         options.WaitUntilStarted = true;
     });
+
 // Add Redis Caching
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -65,10 +85,10 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-    options.RoutePrefix = string.Empty; // This makes Swagger the home page (http://localhost:5000/)
+    options.RoutePrefix = string.Empty; // This makes Swagger the home page
 });
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 

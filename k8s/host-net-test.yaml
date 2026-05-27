@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: host-net-test
+  namespace: staging
+spec:
+  hostNetwork: true
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: busybox
+      command: ["wget", "-qO-", "http://127.0.0.1:11434"]

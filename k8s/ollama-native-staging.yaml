@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-local
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-local
+  template:
+    metadata:
+      labels:
+        app: ollama-local
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+              name: ollama-port
+          resources:
+            # Increased requests and limits to accommodate Llama 3 8B model requirements
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "6Gi"
+          volumeMounts:
+            - name: ollama-storage
+              mountPath: /root/.ollama
+      volumes:
+        - name: ollama-storage
+          # ** MODIFIED: Replaced emptyDir with your persistent storage claim **
+          persistentVolumeClaim:
+            claimName: ollama-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-wsl-bridge
+  namespace: staging
+spec:
+  ports:
+    - port: 11434
+      targetPort: 11434
+  selector:
+    app: ollama-local

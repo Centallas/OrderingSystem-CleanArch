@@ -5,4 +5,7 @@ metadata:
   namespace: staging
 data:
   MessageBroker__Host: "rabbitmq-staging-service"
-  Ollama__Endpoint: "http://ollama-wsl-bridge:11434/v1/"
+  #Ollama__Endpoint: "http://ollama-wsl-bridge:11434/v1"
+  #Ollama__Endpoint: "http://host.docker.internal:11434/v1"
+  Ollama__Endpoint: "http://ollama-wsl-bridge.staging.svc.cluster.local:11434/v1/"
+  Ollama__Model: "llama3"
