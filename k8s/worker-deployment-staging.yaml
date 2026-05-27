@@ -17,13 +17,13 @@ spec:
     spec:
       containers:
       - name: llm-worker 
-        image: local-registry/ordering-llm-worker:v23        
+        image: edwardoz/ordering-llm-worker:staging        
         imagePullPolicy: Always
         env:
         # Generic .NET Host Environment Flag
         - name: DOTNET_ENVIRONMENT
           value: "Staging"
-        # Keep this one too just to ensure complete alignment across shared internal libraries       
+        # Keep this one too just to ensure complete alignment across shared internal libraries        
         - name: ASPNETCORE_ENVIRONMENT  # Explicit Hosting Environment Flag
           value: "Staging"
           
