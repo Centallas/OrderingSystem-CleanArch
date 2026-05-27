@@ -1,14 +1,21 @@
-name: Build, Test, and Deploy to Staging
+name: Build, Test, and Deploy
 
 on:
+  push:
+    branches: [ develop ]
   pull_request:
     branches: [ main ]
-  push:
-    branches: [ feature/* ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service: [
+          { dockerfile: "API.Dockerfile", image_name: "ordering-api" },
+          { dockerfile: "Worker.Dockerfile", image_name: "ordering-llm-worker" }
+        ]
 
     steps:
     # Step 1: Download the repository code onto the runner    
@@ -39,11 +46,25 @@ jobs:
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
-    # Step 7: Build the container image and push it to Docker Hub
+
+    # Step 7: Determine the environment tag based on the branch
+    - name: Set Environment Tag
+      id: vars
+      run: |
+        if [ "${{ github.ref_name }}" = "develop" ]; then
+          echo "env_tag=dev" >> $GITHUB_OUTPUT
+        elif [ "${{ github.base_ref }}" = "main" ]; then
+          echo "env_tag=staging" >> $GITHUB_OUTPUT
+        else
+          echo "env_tag=latest" >> $GITHUB_OUTPUT
+        fi
+
+    # Step 8: Build and Push Docker Images using the Matrix setup
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: Worker.Dockerfile # Pointing directly to your root worker file
+        file: ${{ matrix.service.dockerfile }}
         push: true
-        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/ordering-llm-worker:staging
+        tags: |
+          ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}

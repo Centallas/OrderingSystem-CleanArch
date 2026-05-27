@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-proxy
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-proxy
+  template:
+    metadata:
+      labels:
+        app: ollama-proxy
+    spec:
+      hostNetwork: true
+      containers:
+        - name: proxy
+          image: alpine/socat
+          command: ["socat", "TCP-LISTEN:11435,fork,reuseaddr", "TCP:127.0.0.1:11434"]
+          ports:
+            - containerPort: 11435
+              hostPort: 11435
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-wsl-bridge
+  namespace: staging
+spec:
+  ports:
+    - port: 11434
+      targetPort: 11435
+  selector:
+    app: ollama-proxy
