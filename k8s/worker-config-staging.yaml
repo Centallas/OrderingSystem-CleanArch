@@ -6,4 +6,4 @@ metadata:
 data:
   MessageBroker__Host: "rabbitmq-staging-service"
   Ollama__Endpoint: "http://ollama-local.staging.svc.cluster.local:11434/v1/"
-  Ollama__Model: "llama3"
+  Ollama__Model: "phi3:latest"
