@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-local
+  namespace: staging
+  labels:
+    app: ollama-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-local
+  template:
+    metadata:
+      labels:
+        app: ollama-local
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+          name: ollama-port
+        volumeMounts:
+        - name: ollama-storage
+          mountPath: /root/.ollama
+      volumes:
+      - name: ollama-storage
+        persistentVolumeClaim:
+          claimName: ollama-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-local
+  namespace: staging
+  labels:
+    app: ollama-local
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11434
+    targetPort: 11434
+    protocol: TCP
+    name: http
+  selector:
+    app: ollama-local
