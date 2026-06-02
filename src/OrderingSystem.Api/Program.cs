@@ -7,6 +7,7 @@ using OrderingSystem.Infrastructure.Persistence;
 using OrderingSystem.Infrastructure.Persistence.Repositories;
 using OrderingSystem.Application.Abstractions.Data;
 using OrderingSystem.Application;
+using OrderingSystem.Infrastructure.Exceptions;
 using OrderingSystem.Infrastructure.Messaging;
 using OrderingSystem.API.Consumers;
 using OrderingSystem.Shared; // Added to access the OrderAnalysisCompleted interface
@@ -28,7 +29,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // --- Application Logic & MediatR ---
 builder.Services.AddApplication();
-builder.Services.AddExceptionHandler<OrderingSystem.Infrastructure.Exceptions.CustomExceptionHandler>();
+builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 // --- MassTransit Setup ---
@@ -40,23 +41,24 @@ builder.Services.AddMassTransit(x =>
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitConfig = builder.Configuration.GetSection("MessageBroker");
-        cfg.Host(rabbitConfig["Host"], "/", h =>
+        var host = rabbitConfig["Host"] ?? "localhost";
+        
+        // Read the port parameter dynamically, falling back to 5672 if missing
+        ushort port = ushort.TryParse(rabbitConfig["Port"], out var p) ? p : (ushort)5672;
+
+        cfg.Host(host, port, "/", h =>
         {
-            h.Username(rabbitConfig["Username"]);
-            h.Password(rabbitConfig["Password"]);
+            h.Username(rabbitConfig["Username"] ?? "guest");
+            h.Password(rabbitConfig["Password"] ?? "guest");
         });
 
-        // 1. Explicitly map the outbound/inbound exchange contract topology name
         cfg.Message<OrderAnalysisCompleted>(m => m.SetEntityName("order-analysis-completed"));
 
-        // 2. Configure a dedicated receive endpoint queue to break the name collision
         cfg.ReceiveEndpoint("order-analysis-completed-queue", e =>
         {
-            // Bind this consumer directly to this queue
             e.ConfigureConsumer<OrderAnalysisCompletedConsumer>(context);
         });
 
-        // Configure remaining endpoints automatically if any exist
         cfg.ConfigureEndpoints(context);
     });
 });
@@ -92,11 +94,20 @@ app.UseSwaggerUI(options =>
 app.UseAuthorization();
 app.MapControllers();
 
-app.Run();
+// 1. Fixed: Use the non-blocking async startup method
+await app.RunAsync();
 
-// --- Helper Class for Basic Tier ---
-// This prevents MassTransit from trying to create Service Bus Topics
-public class BasicTierEntityNameFormatter : IEntityNameFormatter
+// --- Namespaced Types Section ---
+namespace OrderingSystem.Api
 {
-    public string FormatEntityName<T>() => typeof(T).Name;
+    // --- Helper Class for Basic Tier ---
+    // This prevents MassTransit from trying to create Service Bus Topics
+    public class BasicTierEntityNameFormatter : IEntityNameFormatter
+    {
+        public string FormatEntityName<T>() => typeof(T).Name;
+    }
 }
+
+// --- Global Types Section ---
+// Keeping this outside of any namespace ensures it maps perfectly to your WebApplicationFactory integration tests!
+public partial class Program { }
