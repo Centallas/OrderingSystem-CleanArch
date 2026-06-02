@@ -45,3 +45,15 @@ spec:
     name: http
   selector:
     app: ollama-local
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-storage-pvc
+  namespace: staging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
