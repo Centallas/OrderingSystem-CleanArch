@@ -27,3 +27,6 @@ Thumbs.db
 **/bin/
 **/obj/
 src/OrderingSystem.Api/deploy.zip
+
+# SonarQube local analysis cache
+.sonarqube/
