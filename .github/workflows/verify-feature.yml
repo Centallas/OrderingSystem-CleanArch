@@ -1,0 +1,28 @@
+name: Verify Feature Branch
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+  workflow_dispatch: # Allows you to manually trigger this run from the GitHub UI if needed
+
+jobs:
+  validate-code:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore
+
+    - name: Build Solution (Verification)
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Automated Tests
+      run: dotnet test --configuration Release --no-build --verbosity normal

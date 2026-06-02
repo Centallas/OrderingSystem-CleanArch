@@ -73,6 +73,33 @@ public class OrderRepository : IOrderRepository
     public async Task AddAsync(Order order, CancellationToken cancellationToken = default)
     {
         await _context.Orders.AddAsync(order, cancellationToken);
+
+        // Pre-populate cache immediately on creation
+        if (_isRedisEnabled)
+        {
+            try
+            {
+                string cacheKey = $"order:{order.Id}";
+                var serializerOptions = new JsonSerializerOptions
+                {
+                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+                    IncludeFields = true 
+                };
+
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                };
+
+                string serializedOrder = JsonSerializer.Serialize(order, serializerOptions);
+                await _cache.SetStringAsync(cacheKey, serializedOrder, cacheOptions);
+                Console.WriteLine($"-----> [Redis Cache Pre-Populate] Order {order.Id} cached immediately on creation.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"-----> REDIS WRITE ERROR (Bypassing): {ex.Message}");
+            }
+        }
     }
 
     public async Task UpdateAsync(Order order)
@@ -87,6 +114,22 @@ public class OrderRepository : IOrderRepository
         }
 
         _context.Orders.Update(order);
+
+        // Invalidate the cache entry if Redis is active
+        if (_isRedisEnabled)
+        {
+            try
+            {
+                string cacheKey = $"order:{order.Id}";
+                await _cache.RemoveAsync(cacheKey);
+                Console.WriteLine($"-----> [Redis Cache Invalidate] Removed stale Order {order.Id} from Cache.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"-----> REDIS INVALIDATE ERROR (Bypassing): {ex.Message}");
+            }
+        }
+
         await Task.CompletedTask;
     }
 
@@ -102,8 +145,36 @@ public class OrderRepository : IOrderRepository
     private async Task<Order?> FetchFromDbAsync(Guid id)
     {
         Console.WriteLine("-----> FETCHING FROM DB...");
-        return await _context.Orders
+        var order = await _context.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
+
+            // If caching is enabled and the order exists, save it to Redis
+            if (_isRedisEnabled && order != null)
+            {
+                try
+                {
+                    string cacheKey = $"order:{id}";
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+                        IncludeFields = true 
+                    };
+
+                    var cacheOptions = new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) // Cache for 5 minutes
+                    };
+
+                    string serializedOrder = JsonSerializer.Serialize(order, serializerOptions);
+                    await _cache.SetStringAsync(cacheKey, serializedOrder, cacheOptions);
+                    Console.WriteLine($"-----> [Redis Cache Populate] Saved Order {id} to Cache.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"-----> REDIS WRITE ERROR (Bypassing): {ex.Message}");
+                }
+        }
+        return order;
     }
 }

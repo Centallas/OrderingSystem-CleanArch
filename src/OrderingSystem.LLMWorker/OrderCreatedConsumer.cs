@@ -50,6 +50,7 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
             var executionSettings = new Microsoft.SemanticKernel.Connectors.OpenAI.OpenAIPromptExecutionSettings
             {
                 MaxTokens = 500,
+                StopSequences = new[] { "<|end|>", "<|endoftext|>", "\nInput:", "Input:", "User:" }, // Prevents local Phi-3 hallucination loops
                 ExtensionData = new Dictionary<string, object>
                 {
                     { "num_ctx", 1024 }
@@ -72,6 +73,13 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
                 {
                     stringBuilder.Append(contentPiece.Content);
                     Console.Write(contentPiece.Content);
+
+                    // Safety Valve: Force break out if the model gets caught spinning in an infinite hallucination loop
+                    if (stringBuilder.Length > 2000)
+                    {
+                        _logger.LogWarning("[LLMWorker] Hallucination loop guard triggered! Output exceeded 2000 characters. Truncating stream to save pipeline state.");
+                        break;
+                    }
                 }
             }
             

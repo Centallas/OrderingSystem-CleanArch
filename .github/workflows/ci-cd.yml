@@ -2,9 +2,8 @@ name: Build, Test, and Deploy
 
 on:
   push:
-    branches: [ develop ]
-  pull_request:
-    branches: [ main ]
+    branches: [ develop, main ]
+    tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
 
 jobs:
   build-and-test:
@@ -47,14 +46,17 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-    # Step 7: Determine the environment tag based on the branch
+    # Step 7: Determine the environment tag based on the branch or tag
     - name: Set Environment Tag
       id: vars
       run: |
         if [ "${{ github.ref_name }}" = "develop" ]; then
           echo "env_tag=dev" >> $GITHUB_OUTPUT
-        elif [ "${{ github.base_ref }}" = "main" ]; then
+        elif [ "${{ github.ref_name }}" = "main" ]; then
           echo "env_tag=staging" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          # Extracts just the version number (e.g., 1.0.0) from the full tag ref
+          echo "env_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
         else
           echo "env_tag=latest" >> $GITHUB_OUTPUT
         fi

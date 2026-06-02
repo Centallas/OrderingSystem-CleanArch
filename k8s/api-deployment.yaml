@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: ordering-api
-        image: local-registry/ordering-api:v24
+        image: edwardoz/ordering-api:staging-v2
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
