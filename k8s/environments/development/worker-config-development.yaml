@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-worker-config
+  namespace: development
+data:
+  MessageBroker__Host: "rabbitmq" 
+  Ollama__Endpoint: "http://host.docker.internal:11434/v1/"
+  Ollama__Model: "phi3:latest"
+  ConnectionStrings__Redis: "redis:6379,abortConnect=false"
+  ConnectionStrings__DefaultConnection: "Host=postgres-service;Port=5432;Database=OrderingDb;Username=postgres;Password=DevSuperPassword123;"
+  ConnectionStrings__OrderingDb: "Host=postgres-service;Port=5432;Database=OrderingDb;Username=postgres;Password=DevSuperPassword123;"

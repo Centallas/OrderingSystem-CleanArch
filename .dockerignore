@@ -1,10 +1,21 @@
+# Source control tracking
 **/.git
+
+# Local IDE configuration and user settings
 **/.vs
 **/.vscode
-**/bin
-**/obj
-**/out
-**/dist
 *.user
+
+# .NET Build output and intermediate asset tracking
+**/bin/
+**/obj/
+**/out/
+**/dist/
 *.lock
+
+# Local infrastructure/manifest templates to keep out of images
+.env
+k8s/
+
+# OS-specific clutter
 .DS_Store
