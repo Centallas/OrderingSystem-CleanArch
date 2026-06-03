@@ -31,19 +31,32 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
         {
             var orderJson = JsonSerializer.Serialize(context.Message, new JsonSerializerOptions { WriteIndented = true });
 
-            var prompt = $"""
-            You are a system architecture assistant. Analyze the following newly created order from our system.
-            Provide a concise summary, highlight any premium components like Shimano groupsets, and confirm if 
-            the payload structure looks complete for downstream processing.
-            
-            Order Data:
+            // Hardened System Instructions to bind Phi-3 Mini to a precise JSON schema layout
+            var systemInstruction = """
+            You are a strict, automated data extraction assistant. Your sole purpose is to analyze the incoming order data and extract structured insights. 
+
+            CRITICAL: You must output ONLY a valid JSON object. Do not include any introductory text, Markdown formatting blocks (such as ```json), explanations, or footnotes. Do not wander into unrelated academic, psychological, or external topics. If the input is ambiguous, adhere strictly to the schema using default values.
+
+            You must respond exactly matching this JSON schema:
+            {
+              "orderId": "string (UUID)",
+              "riskAssessment": "string (LOW | MEDIUM | HIGH)",
+              "confidenceScore": 0.00,
+              "extractedKeywords": ["string"],
+              "flaggedReason": "string (Leave empty if risk is LOW)"
+            }
+            """;
+
+            var userPrompt = $"""
+            Analyze the following order payload for fraud and routing classification:
             {orderJson}
             """;
 
             var chatService = _kernel.Services.GetRequiredService<IChatCompletionService>(); 
 
-            var chatHistory = new ChatHistory(); 
-            chatHistory.AddUserMessage(prompt); 
+            // Initialize chat history with system instructions to anchor focus
+            var chatHistory = new ChatHistory(systemInstruction); 
+            chatHistory.AddUserMessage(userPrompt); 
 
             _logger.LogInformation("[LLMWorker] Dispatching prompt directly to IChatCompletionService streaming pipeline...");
 
@@ -53,7 +66,8 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
                 StopSequences = new[] { "<|end|>", "<|endoftext|>", "\nInput:", "Input:", "User:" }, // Prevents local Phi-3 hallucination loops
                 ExtensionData = new Dictionary<string, object>
                 {
-                    { "num_ctx", 1024 }
+                    { "num_ctx", 1024 },
+                    { "format", "json" }// Forces the Ollama engine to constrain output strictly to JSON
                 }
             };
 
@@ -85,7 +99,7 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
             
             Console.WriteLine("\n[LLMWorker] --- Live Token Stream End ---\n");
 
-            var llmResponseText = stringBuilder.ToString(); 
+            var llmResponseText = stringBuilder.ToString().Trim(); 
 
             _logger.LogInformation("[LLMWorker] Streaming analysis completed successfully from Ollama!");
 
@@ -97,11 +111,11 @@ public class OrderCreatedConsumer : IConsumer<OrderCreated>
             {
                 _logger.LogInformation("[LLMWorker] Order record located. Invoking domain mutation method for AISummary...");
     
-                 // Use the explicit domain method provided by the aggregate root
+                // Use the explicit domain method provided by the aggregate root
                 order.SetAISummary(llmResponseText); 
 
                 await _dbContext.SaveChangesAsync(context.CancellationToken);
-                 _logger.LogInformation("[LLMWorker] Database entity state saved successfully to PostgreSQL!");
+                _logger.LogInformation("[LLMWorker] Database entity state saved successfully to PostgreSQL!");
             }
             else
             {
