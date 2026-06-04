@@ -13,11 +13,11 @@ spec:
     spec:
       containers:
       - name: migration-runner
-        image: ordering-llm-worker:latest
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/centallas/orderingsystem-cleanarch-worker:staging
+        imagePullPolicy: Always
         command: ["dotnet", "ef", "database", "update"]
         env:
         - name: ConnectionStrings__DefaultConnection
-          value: "Host=postgres-staging;Database=OrderingDb;Username=postgres;Password=your_secure_password;"
+          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123;"
       restartPolicy: OnFailure
   backoffLimit: 3

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: llm-worker 
-        image: edwardoz/ordering-llm-worker:staging-v2        
+        image: ghcr.io/centallas/orderingsystem-cleanarch-worker:staging        
         imagePullPolicy: Always
         env:
         # Generic .NET Host Environment Flag
