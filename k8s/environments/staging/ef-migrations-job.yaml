@@ -5,19 +5,19 @@ metadata:
   namespace: staging
   annotations:
     argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   template:
     metadata:
       name: ordering-db-migration
     spec:
+      imagePullSecrets:
+      - name: ghcr-pull-secret
       containers:
       - name: migration-runner
         image: ghcr.io/centallas/orderingsystem-cleanarch-worker:staging
         imagePullPolicy: Always
-        command: ["dotnet", "ef", "database", "update"]
         env:
         - name: ConnectionStrings__DefaultConnection
-          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123;"
+          value: "Host=rbd-postgres-staging;Database=OrderingDbStaging;Username=postgres;Password=postgres"
       restartPolicy: OnFailure
-  backoffLimit: 3
+  backoffLimit: 2
