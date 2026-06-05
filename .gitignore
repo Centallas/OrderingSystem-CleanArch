@@ -30,3 +30,9 @@ src/OrderingSystem.Api/deploy.zip
 
 # SonarQube local analysis cache
 .sonarqube/
+
+# Staging & Local Storage Artifacts
+*.tar
+*.iso
+*.vhd
+staging-environment/

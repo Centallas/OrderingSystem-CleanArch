@@ -1,5 +1,5 @@
 services:
-  # 1. Database (Already have this)
+  # 1. Database
   postgres-db:
     image: postgres:latest
     container_name: ordering-postgres
@@ -12,14 +12,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
-  # 2. Redis (New - Replaces Azure Cache for Redis)
+  # 2. Redis (Replaces Azure Cache for Redis)
   redis-cache:
     image: redis:latest
     container_name: ordering-redis
     ports:
       - "6379:6379"
 
-  # 3. RabbitMQ (New - Replaces Azure Service Bus)
+  # 3. RabbitMQ (Replaces Azure Service Bus)
   rabbitmq:
     image: rabbitmq:3-management
     container_name: ordering-rabbitmq
@@ -29,7 +29,12 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-      
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
   # 4. LLM Worker Service
   ordering-worker:
     container_name: ordering-worker
@@ -38,13 +43,20 @@ services:
       dockerfile: Worker.Dockerfile
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
-      - Ollama__Endpoint=http://host.docker.internal:11434/v1/
-      - "RabbitMQ:Host=rabbitmq"  # Use the colon syntax or RabbitMQ__Host
+      - Ollama__Endpoint=http://host.docker.internal:11434
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Username=guest
+      - MessageBroker__Password=guest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Teaches native Linux Docker to resolve this domain to 172.17.0.1 automatically!
     depends_on:
-      - postgres-db
-      - rabbitmq
+      postgres-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
-      - default 
+      - default
+
   # 5. Api
   ordering-api:
     container_name: ordering-api
@@ -54,12 +66,28 @@ services:
     ports:
       - "5000:8080"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
+      
+      # Hardened Configuration Binding Formats for RabbitMQ Connection
       - MessageBroker__Host=rabbitmq
       - MessageBroker__Username=guest
       - MessageBroker__Password=guest
+      
+      - MessageBroker_Host=rabbitmq
+      - MessageBroker_Username=guest
+      - MessageBroker_Password=guest
+      
+      - "MessageBroker:Host=rabbitmq"
+      - "MessageBroker:Username=guest"
+      - "MessageBroker:Password=guest"
+      
+      - ConnectionStrings__Redis=redis-cache:6379
     depends_on:
-      - postgres-db
-      - rabbitmq
+      postgres-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   postgres_data:

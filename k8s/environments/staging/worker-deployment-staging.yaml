@@ -20,7 +20,7 @@ spec:
       containers:
       - name: llm-worker 
         image: ghcr.io/centallas/orderingsystem-cleanarch-worker:staging        
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         # Generic .NET Host Environment Flag
         - name: DOTNET_ENVIRONMENT

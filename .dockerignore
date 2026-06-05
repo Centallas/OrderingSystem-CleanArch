@@ -19,3 +19,10 @@ k8s/
 
 # OS-specific clutter
 .DS_Store
+
+# Exclude Hyper-V / Virtual Machine disk files
+*.vhdx
+*.vhd
+
+# Exclude the entire staging VM folder structure
+staging-environment/
