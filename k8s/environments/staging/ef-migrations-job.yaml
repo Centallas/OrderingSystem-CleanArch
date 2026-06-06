@@ -30,3 +30,4 @@ spec:
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         - name: ConnectionStrings__OrderingDb
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
+        # Triggering automated sync refresh  
