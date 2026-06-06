@@ -71,4 +71,4 @@ jobs:
         push: true
         no-cache: true # Guarantees clean re-compilation of updated files without layers caching
         tags: |
-          ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}
+          ghcr.io/centallas/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}
