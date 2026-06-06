@@ -9,6 +9,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     
+    # Explicitly grant the GITHUB_TOKEN write access to publish images to GHCR
+    permissions:
+      contents: read
+      packages: write
+    
     strategy:
       matrix:
         service: [
