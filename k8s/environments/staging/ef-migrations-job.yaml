@@ -5,7 +5,7 @@ metadata:
   namespace: staging
   annotations:
     # Runs migrations completely BEFORE the new API/Worker roll out
-    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook: PostSync
     # Deletes the previous job pod automatically before creating a new one to prevent name collisions
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
