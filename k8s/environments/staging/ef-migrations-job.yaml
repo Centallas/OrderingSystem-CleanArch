@@ -46,3 +46,4 @@ spec:
           value: "guest"
         - name: RabbitMQ__Password
           value: "guest"
+        # Kicking fresh automated PreSync hook execution  
