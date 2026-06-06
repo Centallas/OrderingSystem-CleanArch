@@ -3,7 +3,7 @@ name: Build, Test, and Deploy
 on:
   push:
     branches: [ develop, main ]
-  tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
+    tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
 
 jobs:
   build-and-test:
