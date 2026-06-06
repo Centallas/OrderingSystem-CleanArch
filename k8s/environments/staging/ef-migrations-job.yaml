@@ -4,31 +4,29 @@ metadata:
   name: ordering-db-migration
   namespace: staging
   annotations:
-    # Changed to PreSync so migrations run completely BEFORE the new API/Worker roll out
+    # Runs migrations completely BEFORE the new API/Worker roll out
     argocd.argoproj.io/hook: PreSync
     # Deletes the previous job pod automatically before creating a new one to prevent name collisions
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
+  backoffLimit: 2
   template:
     metadata:
       name: ordering-db-migration
     spec:
-      # Kept your existing registry secret in case you push this image to GHCR later
+      # Registry secret to authenticate against your private GHCR repository
       imagePullSecrets:
       - name: ghcr-pull-secret
+      restartPolicy: OnFailure
       containers:
       - name: migration-runner
-        # Pointed to your lightweight EF bundle image built locally on the native Linux engine
-        image: ordering-migration:latest
+        # Aligned to match the exact image name and staging tag built by your updated GitHub Actions workflow
+        image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
         imagePullPolicy: IfNotPresent
         env:
-        # Kept the environment flag just in case your DbContextFactory checks it
         - name: ASPNETCORE_ENVIRONMENT
           value: "Staging"
-        # The bundle only needs database access—RabbitMQ dependencies are fully bypassed
         - name: ConnectionStrings__DefaultConnection
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         - name: ConnectionStrings__OrderingDb
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
-      restartPolicy: OnFailure
-  backoffLimit: 2

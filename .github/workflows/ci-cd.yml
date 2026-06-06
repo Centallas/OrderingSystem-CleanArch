@@ -3,7 +3,7 @@ name: Build, Test, and Deploy
 on:
   push:
     branches: [ develop, main ]
-    tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
+  tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
 
 jobs:
   build-and-test:
@@ -12,8 +12,9 @@ jobs:
     strategy:
       matrix:
         service: [
-          { dockerfile: "API.Dockerfile", image_name: "ordering-api" },
-          { dockerfile: "Worker.Dockerfile", image_name: "ordering-llm-worker" }
+          { dockerfile: "API.Dockerfile", image_name: "orderingsystem-cleanarch-api" },
+          { dockerfile: "Worker.Dockerfile", image_name: "orderingsystem-cleanarch-worker" },
+          { dockerfile: "Migration.Dockerfile", image_name: "orderingsystem-cleanarch-migration" }
         ]
 
     steps:
@@ -39,12 +40,13 @@ jobs:
     - name: Run Tests
       run: dotnet test --configuration Release --no-build --verbosity normal
 
-    # Step 6: Log into Docker Hub using repository secrets
-    - name: Log in to Docker Hub
+    # Step 6: Log into GitHub Container Registry (GHCR) instead of Docker Hub
+    - name: Log in to GHCR
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     # Step 7: Determine the environment tag based on the branch or tag
     - name: Set Environment Tag
@@ -55,18 +57,18 @@ jobs:
         elif [ "${{ github.ref_name }}" = "main" ]; then
           echo "env_tag=staging" >> $GITHUB_OUTPUT
         elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-          # Extracts just the version number (e.g., 1.0.0) from the full tag ref
           echo "env_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
         else
           echo "env_tag=latest" >> $GITHUB_OUTPUT
         fi
 
-    # Step 8: Build and Push Docker Images using the Matrix setup
+    # Step 8: Build and Push Docker Images using the Matrix setup to GHCR
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ${{ matrix.service.dockerfile }}
         push: true
+        no-cache: true # Guarantees clean re-compilation of updated files without layers caching
         tags: |
-          ${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}
+          ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}
