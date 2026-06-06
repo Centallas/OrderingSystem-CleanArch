@@ -26,8 +26,23 @@ spec:
         env:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Staging"
+        
+        # Database Connection Strings
         - name: ConnectionStrings__DefaultConnection
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         - name: ConnectionStrings__OrderingDb
           value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
-        # Triggering automated sync refresh  
+        
+        # MassTransit / RabbitMQ Configuration overrides for Staging Namespace
+        - name: EventBus__Host
+          value: "rabbitmq-staging"
+        - name: EventBus__UserName
+          value: "guest"
+        - name: EventBus__Password
+          value: "guest"
+        - name: RabbitMQ__Host
+          value: "rabbitmq-staging"
+        - name: RabbitMQ__Username
+          value: "guest"
+        - name: RabbitMQ__Password
+          value: "guest"
