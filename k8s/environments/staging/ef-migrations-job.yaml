@@ -19,9 +19,9 @@ spec:
       - name: migration-runner
         image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
         imagePullPolicy: IfNotPresent
-        # THIS IS THE PART TO EDIT:
+        # Updated to execute the self-contained binary directly
         command: ["/bin/sh", "-c"]
-        args: ["dotnet OrderingSystem.Migrations.dll || sleep 3600"]
+        args: ["./efbundle || sleep 3600"]
         env:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Staging"
