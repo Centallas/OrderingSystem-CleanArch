@@ -1,40 +1,36 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  # Changed name to -v2 to instantly bypass Argo CD's stuck tracking cache
-  name: ordering-db-migration-v2
+  # Incremented to v3 to guarantee a completely new tracking state for Argo CD
+  name: ordering-db-migration-v3
   namespace: staging
   annotations:
-    # Runs migrations completely BEFORE the new API/Worker roll out
     argocd.argoproj.io/hook: PreSync
-    # Deletes the previous job pod automatically before creating a new one to prevent name collisions
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: 2
   template:
     metadata:
-      name: ordering-db-migration-v2
+      name: ordering-db-migration-v3
     spec:
-      # Registry secret to authenticate against your private GHCR repository
       imagePullSecrets:
       - name: ghcr-pull-secret
       restartPolicy: OnFailure
       containers:
       - name: migration-runner
-        # Aligned to match the exact image name and staging tag built by your updated GitHub Actions workflow
         image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
         imagePullPolicy: IfNotPresent
         env:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Staging"
         
-        # Database Connection Strings
+        # Corrected Database Connection Strings to point to postgres-staging
         - name: ConnectionStrings__DefaultConnection
-          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
+          value: "Host=postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         - name: ConnectionStrings__OrderingDb
-          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
+          value: "Host=postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         
-        # MassTransit / RabbitMQ Configuration overrides for Staging Namespace
+        # MassTransit / RabbitMQ Configuration overrides
         - name: EventBus__Host
           value: "rabbitmq-staging"
         - name: EventBus__UserName
