@@ -1,24 +1,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ordering-system-staging
+  name: root-bootstrap-supervisor
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: 'https://github.com/Centallas/OrderingSystem-CleanArch.git'
     targetRevision: main
-    path: k8s/environments/staging
+    path: k8s/argocd # Points to the administrative control folder
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: staging
+    namespace: argocd # Deploys control components into the management namespace
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
