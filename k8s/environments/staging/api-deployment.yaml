@@ -15,6 +15,15 @@ spec:
       labels:
         app: ordering-api
     spec:
+      initContainers:
+      - name: run-db-migrations
+        image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
+        - name: ConnectionStrings__OrderingDb
+          value: "Host=rbd-postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
       containers:
       - name: ordering-api
         image: ghcr.io/centallas/orderingsystem-cleanarch-api:staging
