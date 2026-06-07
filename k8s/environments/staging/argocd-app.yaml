@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: ordering-system-staging
   namespace: argocd
+  labels:
+    # Incremented to force Argo CD to completely reload its tracking state
+    cache-reset: "v2"
 spec:
   project: default
   source:
@@ -16,3 +19,10 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    # Added retry policy to prevent Argo CD from freezing if an external mutation occurs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
