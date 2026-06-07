@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ordering-api
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
   namespace: staging
   labels:
     app: ordering-api
