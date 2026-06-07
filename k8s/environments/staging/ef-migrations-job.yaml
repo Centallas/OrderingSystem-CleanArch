@@ -1,12 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  # Incremented to v3 to guarantee a completely new tracking state for Argo CD
   name: ordering-db-migration-v3
   namespace: staging
   annotations:
     argocd.argoproj.io/hook: PreSync
-    #argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   backoffLimit: 0
@@ -20,21 +18,17 @@ spec:
       containers:
       - name: migration-runner
         image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
-        # ADD THESE THREE LINES:
+        imagePullPolicy: IfNotPresent
+        # THIS IS THE PART TO EDIT:
         command: ["/bin/sh", "-c"]
         args: ["dotnet OrderingSystem.Migrations.dll || sleep 3600"]
-        imagePullPolicy: IfNotPresent
         env:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Staging"
-        
-        # Corrected Database Connection Strings to point to postgres-staging
         - name: ConnectionStrings__DefaultConnection
           value: "Host=postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
         - name: ConnectionStrings__OrderingDb
           value: "Host=postgres-staging;Database=OrderingDb;Username=postgres;Password=StagingSuperPassword123"
-        
-        # MassTransit / RabbitMQ Configuration overrides
         - name: EventBus__Host
           value: "rabbitmq-staging"
         - name: EventBus__UserName
