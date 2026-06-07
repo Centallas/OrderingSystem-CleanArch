@@ -20,6 +20,9 @@ spec:
       containers:
       - name: migration-runner
         image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
+        # ADD THESE THREE LINES:
+        command: ["/bin/sh", "-c"]
+        args: ["dotnet OrderingSystem.Migrations.dll || sleep 3600"]
         imagePullPolicy: IfNotPresent
         env:
         - name: ASPNETCORE_ENVIRONMENT
