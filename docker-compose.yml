@@ -1,8 +1,9 @@
 services:
   # 1. Database
   postgres-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: ordering-postgres
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: P@ssw0rd123
@@ -10,23 +11,33 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d OrderingDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # 2. Redis (Replaces Azure Cache for Redis)
+  # 2. Redis
   redis-cache:
-    image: redis:latest
+    image: redis:alpine
     container_name: ordering-redis
+    restart: always
     ports:
       - "6379:6379"
 
-  # 3. RabbitMQ (Replaces Azure Service Bus)
+  # 3. RabbitMQ
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.13-management-alpine
     container_name: ordering-rabbitmq
+    hostname: rabbitmq
+    restart: always
     ports:
-      - "5672:5672"   # App connection
-      - "15672:15672" # Management Dashboard
+      - "5672:5672"
+      - "15672:15672"
     environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-kernel os_mon start_os_mon false"
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     healthcheck:
@@ -34,60 +45,91 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
+      start_period: 30s
 
-  # 4. LLM Worker Service
+  # 4. Ollama
+  ollama-local:
+    image: ollama/ollama:latest
+    container_name: ollama-local
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+# 5. Migration Runner
+  migration-runner:
+    image: ghcr.io/centallas/orderingsystem-cleanarch-migration:staging
+    container_name: ordering-migrations
+    working_dir: /app
+    entrypoint: [""]
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    volumes:
+      - ./src/OrderingSystem.Api/appsettings.Staging.json:/app/appsettings.json:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+    command: ["./efbundle", "--connection", "Host=ordering-postgres;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123"]
+    
+  # 6. LLM Worker Service
   ordering-worker:
     container_name: ordering-worker
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Worker.Dockerfile
     environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
-      - Ollama__Endpoint=http://host.docker.internal:11434
+      - ConnectionStrings__DefaultConnection=Host=ordering-postgres;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
+      - Ollama__Endpoint=http://ollama-local:11434/v1
+      - Ollama__Model=phi3
       - MessageBroker__Host=rabbitmq
       - MessageBroker__Username=guest
       - MessageBroker__Password=guest
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Teaches native Linux Docker to resolve this domain to 172.17.0.1 automatically!
     depends_on:
+      migration-runner:
+        condition: service_completed_successfully
       postgres-db:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    networks:
-      - default
+      ollama-local:
+        condition: service_started
 
-  # 5. Api
+  # 7. Api
   ordering-api:
     container_name: ordering-api
+    restart: unless-stopped
     build:
       context: .
       dockerfile: API.Dockerfile
     ports:
       - "5000:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
-      
-      # Hardened Configuration Binding Formats for RabbitMQ Connection
+      - ASPNETCORE_ENVIRONMENT=Staging
+      # Database
+      - ConnectionStrings__DefaultConnection=Host=ordering-postgres;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
+      - ConnectionStrings__OrderingDb=Host=ordering-postgres;Port=5432;Database=OrderingDb;Username=postgres;Password=P@ssw0rd123
+      # RabbitMQ (Updated to match service key: 'rabbitmq')
+      - EventBus__Host=rabbitmq
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
       - MessageBroker__Host=rabbitmq
       - MessageBroker__Username=guest
       - MessageBroker__Password=guest
-      
-      - MessageBroker_Host=rabbitmq
-      - MessageBroker_Username=guest
-      - MessageBroker_Password=guest
-      
-      - "MessageBroker:Host=rabbitmq"
-      - "MessageBroker:Username=guest"
-      - "MessageBroker:Password=guest"
-      
+      # Redis (Updated to match service key: 'redis-cache')
       - ConnectionStrings__Redis=redis-cache:6379
     depends_on:
+      migration-runner:
+        condition: service_completed_successfully
       postgres-db:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis-cache:
+        condition: service_started
 
 volumes:
   postgres_data:
+  ollama_data:

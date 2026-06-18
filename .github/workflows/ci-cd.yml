@@ -3,13 +3,11 @@ name: Build, Test, and Deploy
 on:
   push:
     branches: [ develop, main ]
-    tags: [ 'v*.*.*' ] # Kicks off the pipeline when a release tag like v1.0.0 is pushed
+    tags: [ 'v*.*.*' ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
-    # Explicitly grant the GITHUB_TOKEN write access to publish images to GHCR
     permissions:
       contents: read
       packages: write
@@ -23,30 +21,24 @@ jobs:
         ]
 
     steps:
-    # Step 1: Download the repository code onto the runner    
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # Step 2: Set up the official .NET SDK environment    
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
 
-    # Step 3: Restore NuGet dependencies
     - name: Restore Dependencies
       run: dotnet restore
 
-    # Step 4: Compile the entire solution to catch build errors
     - name: Build Solution
       run: dotnet build --configuration Release --no-restore
 
-    # Step 5: Run all automated tests in the solution
     - name: Run Tests
       run: dotnet test --configuration Release --no-build --verbosity normal
-      continue-on-error: true # Bypasses environment-specific integration test crashes
+      continue-on-error: true
 
-    # Step 6: Log into GitHub Container Registry (GHCR) instead of Docker Hub
     - name: Log in to GHCR
       uses: docker/login-action@v3
       with:
@@ -54,7 +46,6 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # Step 7: Determine the environment tag based on the branch or tag
     - name: Set Environment Tag
       id: vars
       run: |
@@ -68,13 +59,36 @@ jobs:
           echo "env_tag=latest" >> $GITHUB_OUTPUT
         fi
 
-    # Step 8: Build and Push Docker Images using the Matrix setup to GHCR
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ${{ matrix.service.dockerfile }}
         push: true
-        no-cache: true # Guarantees clean re-compilation of updated files without layers caching
+        no-cache: true
         tags: |
           ghcr.io/centallas/${{ matrix.service.image_name }}:${{ steps.vars.outputs.env_tag }}
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Staging VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Navigate to the project directory
+            cd /home/your-user/ai-test
+            
+            # Login to GHCR to ensure we can pull images
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the latest images
+            docker compose pull
+            
+            # Restart the services
+            docker compose up -d
