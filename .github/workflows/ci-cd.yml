@@ -82,7 +82,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             # Navigate to the project directory
-            cd /home/your-user/ai-test
+            cd /home/devops/source/ai-test
             
             # Pull the latest code (which includes the updated docker-compose.yml)
             git pull origin main
