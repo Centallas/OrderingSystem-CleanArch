@@ -79,10 +79,11 @@ jobs:
           # Navigate to the project directory
           cd /home/devops/source/ai-test
           
-          # Pull the latest code (which includes the updated docker-compose.yml)
-          git pull origin main
+          # Force synchronization with the remote repository
+          git fetch origin main
+          git reset --hard origin/main
           
-          # Login to GHCR (Using the secret provided to the runner)
+          # Login to GHCR
           echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
           # Pull the updated images and restart services
